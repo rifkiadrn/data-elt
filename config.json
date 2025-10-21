@@ -1,0 +1,19 @@
+{
+    "app": {
+      "name": "data-elt",
+      "port": 8081
+    },
+    "web": {
+      "prefork": false
+    },
+    "log": {
+      "level": 6
+    },
+    "database": {
+      "pool": {
+        "idle": 10,
+        "max": 100,
+        "lifetime": 300
+      }
+    }
+  }
