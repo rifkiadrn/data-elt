@@ -1,5 +1,5 @@
 -- migrate:up
-CREATE TABLE users (
+CREATE TABLE data_elt.users (
     id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
     created_at BIGINT NOT NULL DEFAULT DATE_PART('EPOCH', NOW()),
     updated_at BIGINT NOT NULL DEFAULT DATE_PART('EPOCH', NOW()),
@@ -10,5 +10,5 @@ CREATE TABLE users (
 );
 
 -- migrate:down
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS data_elt.users;
 
