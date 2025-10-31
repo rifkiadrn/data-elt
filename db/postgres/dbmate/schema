@@ -18,6 +18,27 @@ CREATE SCHEMA data_elt;
 
 
 --
+-- Name: dw_raw; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA dw_raw;
+
+
+--
+-- Name: dw_raw_marts; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA dw_raw_marts;
+
+
+--
+-- Name: dw_raw_staging; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA dw_raw_staging;
+
+
+--
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -43,6 +64,25 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: orders; Type: TABLE; Schema: data_elt; Owner: -
+--
+
+CREATE TABLE data_elt.orders (
+    id uuid NOT NULL,
+    user_id uuid,
+    order_date timestamp without time zone,
+    status text,
+    total_amount numeric(10,2),
+    currency text,
+    payment_method text,
+    shipping_city text,
+    shipping_country text,
+    created_at bigint DEFAULT date_part('EPOCH'::text, now()) NOT NULL,
+    updated_at bigint DEFAULT date_part('EPOCH'::text, now()) NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: data_elt; Owner: -
 --
 
@@ -58,12 +98,122 @@ CREATE TABLE data_elt.users (
 
 
 --
+-- Name: _airbyte_destination_state; Type: TABLE; Schema: dw_raw; Owner: -
+--
+
+CREATE TABLE dw_raw._airbyte_destination_state (
+    name character varying,
+    namespace character varying,
+    destination_state character varying,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: dw_raw_raw__stream_lake; Type: TABLE; Schema: dw_raw; Owner: -
+--
+
+CREATE TABLE dw_raw.dw_raw_raw__stream_lake (
+    _airbyte_raw_id character varying NOT NULL,
+    _airbyte_data jsonb,
+    _airbyte_extracted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    _airbyte_loaded_at timestamp with time zone,
+    _airbyte_meta jsonb,
+    _airbyte_generation_id bigint
+);
+
+
+--
+-- Name: lake; Type: TABLE; Schema: dw_raw; Owner: -
+--
+
+CREATE TABLE dw_raw.lake (
+    id character varying,
+    name character varying,
+    token character varying,
+    password character varying,
+    username character varying,
+    created_at bigint,
+    updated_at bigint,
+    _ab_source_file_url character varying,
+    _ab_source_file_last_modified character varying,
+    _airbyte_raw_id character varying(36) NOT NULL,
+    _airbyte_extracted_at timestamp with time zone NOT NULL,
+    _airbyte_generation_id bigint,
+    _airbyte_meta jsonb NOT NULL
+);
+
+
+--
+-- Name: dim_users; Type: TABLE; Schema: dw_raw_marts; Owner: -
+--
+
+CREATE TABLE dw_raw_marts.dim_users (
+    user_key bigint,
+    user_id uuid,
+    username character varying,
+    full_name character varying,
+    created_date date,
+    is_active boolean,
+    effective_from timestamp with time zone,
+    effective_to text,
+    _dbt_loaded_at timestamp with time zone
+);
+
+
+--
+-- Name: fact_user_registrations; Type: TABLE; Schema: dw_raw_marts; Owner: -
+--
+
+CREATE TABLE dw_raw_marts.fact_user_registrations (
+    registration_key bigint,
+    user_key bigint,
+    registration_date date,
+    registration_timestamp timestamp with time zone,
+    event_type text,
+    registration_count integer,
+    _dbt_loaded_at timestamp with time zone
+);
+
+
+--
+-- Name: stg_users; Type: VIEW; Schema: dw_raw_staging; Owner: -
+--
+
+CREATE VIEW dw_raw_staging.stg_users AS
+ WITH source AS (
+         SELECT (lake.id)::uuid AS user_id,
+            lake.name,
+            lake.username,
+            to_timestamp((lake.created_at)::double precision) AS created_at,
+            to_timestamp((lake.updated_at)::double precision) AS updated_at,
+            CURRENT_TIMESTAMP AS _dbt_loaded_at
+           FROM dw_raw.lake
+        )
+ SELECT source.user_id,
+    source.name,
+    source.username,
+    source.created_at,
+    source.updated_at,
+    source._dbt_loaded_at
+   FROM source;
+
+
+--
 -- Name: dbmate_schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.dbmate_schema_migrations (
     version character varying(255) NOT NULL
 );
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: data_elt; Owner: -
+--
+
+ALTER TABLE ONLY data_elt.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
 
 
 --
@@ -75,11 +225,69 @@ ALTER TABLE ONLY data_elt.users
 
 
 --
+-- Name: dw_raw_raw__stream_lake dw_raw_raw__stream_lake_pkey; Type: CONSTRAINT; Schema: dw_raw; Owner: -
+--
+
+ALTER TABLE ONLY dw_raw.dw_raw_raw__stream_lake
+    ADD CONSTRAINT dw_raw_raw__stream_lake_pkey PRIMARY KEY (_airbyte_raw_id);
+
+
+--
 -- Name: dbmate_schema_migrations dbmate_schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.dbmate_schema_migrations
     ADD CONSTRAINT dbmate_schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: dw_raw_raw__stream_lake_extracted_at; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX dw_raw_raw__stream_lake_extracted_at ON dw_raw.dw_raw_raw__stream_lake USING btree (_airbyte_extracted_at);
+
+
+--
+-- Name: dw_raw_raw__stream_lake_loaded_at; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX dw_raw_raw__stream_lake_loaded_at ON dw_raw.dw_raw_raw__stream_lake USING btree (_airbyte_loaded_at, _airbyte_extracted_at);
+
+
+--
+-- Name: dw_raw_raw__stream_lake_raw_id; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX dw_raw_raw__stream_lake_raw_id ON dw_raw.dw_raw_raw__stream_lake USING btree (_airbyte_raw_id);
+
+
+--
+-- Name: lake__airbyte_extracted_at_idx; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX lake__airbyte_extracted_at_idx ON dw_raw.lake USING btree (_airbyte_extracted_at);
+
+
+--
+-- Name: lake__airbyte_raw_id_idx; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX lake__airbyte_raw_id_idx ON dw_raw.lake USING btree (_airbyte_raw_id);
+
+
+--
+-- Name: lake_id__ab_source_file_last_modified__airbyte_extracted_at_idx; Type: INDEX; Schema: dw_raw; Owner: -
+--
+
+CREATE INDEX lake_id__ab_source_file_last_modified__airbyte_extracted_at_idx ON dw_raw.lake USING btree (id, _ab_source_file_last_modified, _airbyte_extracted_at);
+
+
+--
+-- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: data_elt; Owner: -
+--
+
+ALTER TABLE ONLY data_elt.orders
+    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES data_elt.users(id);
 
 
 --
@@ -94,4 +302,6 @@ ALTER TABLE ONLY public.dbmate_schema_migrations
 INSERT INTO public.dbmate_schema_migrations (version) VALUES
     ('20220815120001'),
     ('20240404132039'),
-    ('20251003095454');
+    ('20251003095454'),
+    ('20251031072821'),
+    ('20251031073532');

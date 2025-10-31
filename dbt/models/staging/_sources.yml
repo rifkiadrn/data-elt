@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: raw_minio
+    description: "Raw data synced from MinIO via Airbyte"
+    schema: dw_raw
+    tables:
+      - name: lake
+        description: "Raw users table from MinIO"
+        columns:
+          - name: id
+            description: "User ID"
+          - name: name
+            description: "User name"
+          - name: username
+            description: "Username"
+          - name: created_at
+            description: "Creation timestamp (epoch)"
+          - name: updated_at
+            description: "Update timestamp (epoch)"

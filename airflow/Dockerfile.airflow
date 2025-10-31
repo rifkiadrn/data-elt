@@ -1,0 +1,5 @@
+# https://airflow.apache.org/docs/docker-stack/build.html
+FROM apache/airflow:3.1.0
+USER airflow
+ADD requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt

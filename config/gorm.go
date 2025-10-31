@@ -43,7 +43,6 @@ func NewDatabase(viper *viper.Viper, log *logrus.Logger) *gorm.DB {
 	maxLifeTimeConnection := viper.GetInt("database.pool.lifetime")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Jakarta", host, username, password, database, port)
-	log.Printf(dsn)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.New(&logrusWriter{Logger: log}, logger.Config{

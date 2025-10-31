@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stg_users
+    description: "Staging model for user data from MinIO/Airbyte"
+    columns:
+      - name: user_id
+        description: "Unique user identifier"
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "User full name"
+        tests:
+          - not_null
+      - name: username
+        description: "User login username"
+        tests:
+          - not_null
+          - unique
+      - name: created_at
+        description: "User creation timestamp"
+        tests:
+          - not_null
+      - name: updated_at
+        description: "User last update timestamp"
+        tests:
+          - not_null
